@@ -21,7 +21,7 @@ class Frame(wx.Frame):
         self.currentVolume = 50
 
         self.create_menu()
-
+        self.InitUI()
         # create sizers
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         controlSizer = self.build_controls()
@@ -73,6 +73,27 @@ class Frame(wx.Frame):
         sizer.Add(btn, 0, wx.LEFT, 3)
 
     # ----------------------------------------------------------------------
+    def InitUI(self):
+     panel = wx.Panel(self)
+
+     font = wx.SystemSettings.GetFont(wx.SYS_SYSTEM_FONT)
+     font.SetPointSize(9)
+
+     vbox = wx.BoxSizer(wx.VERTICAL)
+
+     hbox1 = wx.BoxSizer(wx.HORIZONTAL)
+     st1 = wx.StaticText(panel, label='Class Name')
+     st1.SetFont(font)
+     hbox1.Add(st1, flag=wx.RIGHT, border=1480)
+     tc = wx.TextCtrl(panel)
+     hbox1.Add(tc, proportion=1)
+     vbox.Add(hbox1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=1480)
+
+     vbox.Add((-1, 1480))
+
+
+
+    #-----------------------------------------------------------------------
     def build_controls(self):
         """
         Builds the audio bar controls

@@ -1,9 +1,10 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(0)
-
-while(True):
+def videorecording(sentence):
+ cap = cv2.VideoCapture(0)
+ print sentence
+ while(True):
     # Capture frame-by-frame
     ret, frame = cap.read()
 
@@ -16,5 +17,5 @@ while(True):
         break
 
 # When everything done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+ cap.release()
+ cv2.destroyAllWindows()
