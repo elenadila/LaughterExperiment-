@@ -2,14 +2,38 @@ import wx
 from Video import *
 import wx.lib.sized_controls as sc
 import thread
+import cv2
 import pandas as pd
-from VideoCamera import *
+#from VideoCamera import *
+import threading
 if "2.8" in wx.version():
     import wx.lib.pubsub.setupkwargs
     from wx.lib.pubsub import pub
 else:
     from wx.lib.pubsub import pub
 
+_FINISH = False
+##################################################################3
+def videorecording():
+ cap = cv2.VideoCapture(0)
+
+ while(True):
+    # Capture frame-by-frame
+    ret, frame = cap.read()
+
+    # Our operations on the frame come here
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    print _FINISH
+    # Display the resulting frame
+    cv2.imshow('frame',gray)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+       break
+    if _FINISH:
+     cap.release()
+     cv2.destroyAllWindows()
+     break
+
+# When everything done, release the capture
 
 ########################################################################
 class LoginDialog(sc.SizedDialog):
@@ -57,27 +81,14 @@ class LoginDialog(sc.SizedDialog):
         wx.StaticText(panel, -1, "Empatica ID")
         self.textCtrl_EmpaticaID = wx.TextCtrl(panel,size=(60, -1))
 
-
-
-        # # row 5
-        # wx.StaticText(panel, -1, "Status")
-        #
-        # # here's how to add a 'nested sizer' using sized_controls
-        # radioPane = sc.SizedPanel(panel, -1)
-        # radioPane.SetSizerType("horizontal")
-        #
-        # # make these children of the radioPane to have them use
-        # # the horizontal layout
-        # wx.RadioButton(radioPane, -1, "Prof")
-        # wx.RadioButton(radioPane, -1, "Mrs.")
-        # wx.RadioButton(radioPane, -1, "Dr.")
-
-        # Save Button
+        # Button for the registration
         btn = wx.Button(panel, label="Register")
         btn.Bind(wx.EVT_BUTTON, self.onRegister) # when the button is clicked call the methon onSave
 
     # ----------------------------------------------------------------------
-    """ This method save the info got from the user's login into a .csv file"""
+
+    """ This method save the info got from the user's login into a .csv file, invoke the camera thread
+    and show the dialog box"""
     def onRegister(self, event):
 
         # Dataframe with all the participant's data
@@ -91,7 +102,19 @@ class LoginDialog(sc.SizedDialog):
                            })
         print df
         df.to_csv('C:/Users/user/Desktop/test.csv', index=0)
-        thread.start_new_thread(videorecording,("ciao",))
+       # thread.start_new_thread(videorecording,())
+        #---------------------------------------------------
+        # Launch the thread
+        global _FINISH
+        t = threading.Thread(target=videorecording)
+        t.start()
+       # time.sleep()
+        time.sleep(10)
+        _FINISH = True
+        t.join()
+        print " finished "
+        #---------------------------------------------
+
         # Show the dialog box: info uploaded
         self.ShowMessage()
         # Send a message to the main frame
@@ -318,6 +341,8 @@ class MainFrame(wx.Frame):
 
 
 if __name__ == "__main__":
+    global _FINISH
+
     app = wx.App(False)
     frame = MainFrame(None, -1, 'Laughter Experiment', 'C:\Users\user\switchdrive\LaughterExperiment-\MPlayer\mplayer.exe')
     app.MainLoop()
