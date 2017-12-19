@@ -3,6 +3,7 @@ from Video import *
 import wx.lib.sized_controls as sc
 import thread
 import cv2
+import datetime
 import pandas as pd
 #from VideoCamera import *
 import threading
@@ -11,29 +12,37 @@ if "2.8" in wx.version():
     from wx.lib.pubsub import pub
 else:
     from wx.lib.pubsub import pub
-
-_FINISH = False
+global t
+global _FINISH
 ##################################################################3
 def videorecording():
  cap = cv2.VideoCapture(0)
+ # Define the codec and create VideoWriter object
+ fourcc = cv2.VideoWriter_fourcc(*'XVID')
+ out = cv2.VideoWriter('video.avi', fourcc, 25.0, (640, 480)) # 25. is the number of frame per second, then dimension
+ now = datetime.datetime.now()
+ print now
+ while (cap.isOpened()):
 
- while(True):
-    # Capture frame-by-frame
-    ret, frame = cap.read()
+     ret, frame = cap.read()
+     if ret == True:
 
-    # Our operations on the frame come here
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    print _FINISH
-    # Display the resulting frame
-    cv2.imshow('frame',gray)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-       break
-    if _FINISH:
-     cap.release()
-     cv2.destroyAllWindows()
-     break
+         # write the flipped frame
+         out.write(frame)
 
-# When everything done, release the capture
+        # cv2.imshow('frame', frame)
+         if cv2.waitKey(1) & 0xFF == ord('q'):
+             break
+     else:
+         break
+
+     if _FINISH:
+         cap.release()
+         out.release()
+         cv2.destroyAllWindows()
+         break
+
+
 
 ########################################################################
 class LoginDialog(sc.SizedDialog):
@@ -45,14 +54,20 @@ class LoginDialog(sc.SizedDialog):
     def __init__(self):
         """Constructor"""
 
-        sc.SizedDialog.__init__(self, None, title="Registration Form",
+        sc.SizedDialog.__init__(self, None,style = wx.DEFAULT_FRAME_STYLE & ~(wx.RESIZE_BORDER | wx.MAXIMIZE_BOX |
+                                                                              wx.CLOSE_BOX | wx.MINIMIZE_BOX),
+                                title="Registration Form",
                                 size=(400, 500))
+
+
+        self.Center()
 
         panel = self.GetContentsPane()
         panel.SetSizerType("form")
 
+
         # row 1: Name
-        wx.StaticText(panel, -1, "Name")
+        wx.StaticText(panel, -1, "Name",style=wx.TE_PASSWORD)
         self.textCtrl_Name = wx.TextCtrl(panel)
         self.textCtrl_Name.SetSizerProps(expand=True)
         # row 2: Surname
@@ -101,18 +116,13 @@ class LoginDialog(sc.SizedDialog):
                            'EmpaticaID':self.textCtrl_EmpaticaID.GetValue()
                            })
         print df
-        df.to_csv('C:/Users/user/Desktop/test.csv', index=0)
+        now = datetime.datetime.now()
+        print now
+
+        df.to_csv('info.csv', index=0)
        # thread.start_new_thread(videorecording,())
         #---------------------------------------------------
-        # Launch the thread
-        global _FINISH
-        t = threading.Thread(target=videorecording)
-        t.start()
-       # time.sleep()
-        time.sleep(10)
-        _FINISH = True
-        t.join()
-        print " finished "
+
         #---------------------------------------------
 
         # Show the dialog box: info uploaded
@@ -125,8 +135,8 @@ class LoginDialog(sc.SizedDialog):
 
     def ShowMessage(self):
         wx.MessageBox('Your information have been successfully uploaded! ' 
-                      'The camera started recording. Thank you!', 'Info',
-                      wx.OK | wx.ICON_INFORMATION)
+                      'Thank you!', 'Info',
+                      style = wx.OK | wx.ICON_INFORMATION & ~(wx.CLOSE_BOX ))
 
 ########################################################################
 class MyPanel(wx.Panel):
@@ -148,7 +158,10 @@ class MainFrame(wx.Frame):
             # A wx.Frame widget is an important container widget
             # The wx.Frame widget is a parent widget for other widgets
     def __init__(self, parent, id, title, mplayer):
-                wx.Frame.__init__(self, parent, id, title, size=(wx.GetDisplaySize()))  # initialize the Frame object
+                #wx.Frame.__init__(self, parent, id, title, size=(wx.GetDisplaySize()))  # initialize the Frame object
+                wx.Frame.__init__(self, parent, id, title,
+                    size=(1920,1060))  # initialize the Frame object
+                self.Center()
                 self.panel = wx.Panel(self)
                 pub.subscribe(self.myListener, "frameListener")
 
@@ -165,12 +178,16 @@ class MainFrame(wx.Frame):
                 controlSizer = self.build_controls()
                 sliderSizer = wx.BoxSizer(wx.HORIZONTAL)
 
+                # End button
+                #closeBtn = wx.Button(self.panel, label="End")
+                #closeBtn.Bind(wx.EVT_BUTTON, self.onClose)
+
                 self.mplayer = mpc.MplayerCtrl(self.panel, -1, mplayer)
                 self.playbackSlider = wx.Slider(self.panel, size=wx.DefaultSize)
                 sliderSizer.Add(self.playbackSlider, 1, wx.ALL | wx.EXPAND, 5)
 
                 # create volume control
-                self.volumeCtrl = wx.Slider(self.panel)
+                self.volumeCtrl = wx.Slider(self.panel )
                 self.volumeCtrl.SetRange(0, 100)
                 self.volumeCtrl.SetValue(self.currentVolume)
                 self.volumeCtrl.Bind(wx.EVT_SLIDER, self.on_set_volume)
@@ -179,7 +196,7 @@ class MainFrame(wx.Frame):
                 # create track counter
                 self.trackCounter = wx.StaticText(self.panel, label="00:00")
                 sliderSizer.Add(self.trackCounter, 0, wx.ALL | wx.CENTER, 5)
-
+               # wx.StaticText(self.panel, label="Ciao")
                 # set up playback timer
                 self.playbackTimer = wx.Timer(self)
                 self.Bind(wx.EVT_TIMER, self.on_update_playback)
@@ -187,6 +204,7 @@ class MainFrame(wx.Frame):
                 mainSizer.Add(self.mplayer, 1, wx.ALL | wx.EXPAND, 5)
                 mainSizer.Add(sliderSizer, 0, wx.ALL | wx.EXPAND, 5)
                 mainSizer.Add(controlSizer, 0, wx.ALL | wx.CENTER, 5)
+                #controlSizer.Add(closeBtn,0, wx.ALL  | wx.RIGHT, 5)
                 self.panel.SetSizer(mainSizer)
 
                 self.Bind(mpc.EVT_MEDIA_STARTED, self.on_media_started)
@@ -196,6 +214,11 @@ class MainFrame(wx.Frame):
 
                 self.Show()  # In order to display the Frame widget we have to run  the Show() method
                 self.panel.Layout()
+
+
+              #  global _FINISH
+
+
 
             # ----------------------------------------------------------------------
     def build_btn(self, btnDict, sizer):
@@ -220,7 +243,7 @@ class MainFrame(wx.Frame):
                 """
                 controlSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-                btnData = [{'bitmap': 'player_pause.png',
+                btnData = [{'bitmap': 'player_play.png',
                             'handler': self.on_pause, 'name': 'pause'},
                            {'bitmap': 'player_stop.png',
                             'handler': self.on_stop, 'name': 'stop'}]
@@ -230,6 +253,11 @@ class MainFrame(wx.Frame):
                 return controlSizer
 
             # ----------------------------------------------------------------------
+
+    def onClose(self, event):
+        """"""
+        self.Close()
+
     def create_menu(self):
                 """
                 Creates a menu
@@ -237,10 +265,12 @@ class MainFrame(wx.Frame):
                 menubar = wx.MenuBar()
                 fileMenu = wx.Menu()
                 add_file_menu_item = fileMenu.Append(wx.NewId(), "&Add File", "Add Media File")
+                exitItem = fileMenu.Append(wx.ID_EXIT, "&End the Experiment")
                 menubar.Append(fileMenu, '&File')
 
                 self.SetMenuBar(menubar)
                 self.Bind(wx.EVT_MENU, self.on_add_file, add_file_menu_item)
+                self.Bind(wx.EVT_MENU, self.onClose,exitItem)
 
             # ----------------------------------------------------------------------
     def on_add_file(self, event):
@@ -285,6 +315,8 @@ class MainFrame(wx.Frame):
                     print "unpausing..."
                     self.mplayer.Pause()
                     self.playbackTimer.Start()
+                # _FINISH = True
+                # t.join()
 
             # ----------------------------------------------------------------------
     def on_process_started(self, event):
@@ -293,6 +325,8 @@ class MainFrame(wx.Frame):
             # ----------------------------------------------------------------------
     def on_process_stopped(self, event):
                 print 'Process stopped!'
+                self.Destroy()
+
 
            # ----------------------------------------------------------------------
     def on_set_volume(self, event):
@@ -308,6 +342,8 @@ class MainFrame(wx.Frame):
                 print "stopping..."
                 self.mplayer.Stop()
                 self.playbackTimer.Stop()
+
+
 
             # ----------------------------------------------------------------------
     def on_update_playback(self, event):
@@ -327,11 +363,6 @@ class MainFrame(wx.Frame):
                     secsPlayed = time.strftime('%M:%S', time.gmtime(offset))
                     self.trackCounter.SetLabel(secsPlayed)
 
-
-        # Ask user to login
-               # dlg = LoginDialog()
-              #  dlg.ShowModal()
-
     # ----------------------------------------------------------------------
     def myListener(self, message, arg2=None):
         """
@@ -341,8 +372,14 @@ class MainFrame(wx.Frame):
 
 
 if __name__ == "__main__":
-    global _FINISH
+   # global _FINISH
+    _FINISH = False
+
 
     app = wx.App(False)
+    t = threading.Thread(target=videorecording)
+    t.start()
     frame = MainFrame(None, -1, 'Laughter Experiment', 'C:\Users\user\switchdrive\LaughterExperiment-\MPlayer\mplayer.exe')
     app.MainLoop()
+    _FINISH = True
+    t.join()
